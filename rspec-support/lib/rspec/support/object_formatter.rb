@@ -22,6 +22,10 @@ module RSpec
         default_instance.format(object)
       end
 
+      def self.format_pair(first, second)
+        default_instance.format_pair(first, second)
+      end
+
       def self.prepare_for_inspection(object)
         default_instance.prepare_for_inspection(object)
       end
@@ -32,17 +36,24 @@ module RSpec
       end
 
       def format(object)
-        if max_formatted_output_length.nil?
-          prepare_for_inspection(object).inspect
+        truncate(prepare_for_inspection(object).inspect)
+      end
+
+      # Formats two objects that are being compared, such as the expected and
+      # actual values of a failed expectation. When truncation would make
+      # them look the same, both are truncated around their first difference.
+      def format_pair(first, second)
+        first_inspected = prepare_for_inspection(first).inspect
+        second_inspected = prepare_for_inspection(second).inspect
+        first_formatted = truncate(first_inspected)
+        second_formatted = truncate(second_inspected)
+
+        if first_formatted == second_formatted && first_inspected != second_inspected
+          difference_index = first_difference_index(first_inspected, second_inspected)
+          start_index = [difference_index - (max_formatted_output_length / 2), 0].max
+          [truncate_from(first_inspected, start_index), truncate_from(second_inspected, start_index)]
         else
-          formatted_object = prepare_for_inspection(object).inspect
-          if formatted_object.length < max_formatted_output_length
-            formatted_object
-          else
-            beginning = truncate_string formatted_object, 0, max_formatted_output_length / 2
-            ending = truncate_string formatted_object, -max_formatted_output_length / 2, -1
-            beginning + ELLIPSIS + ending
-          end
+          [first_formatted, second_formatted]
         end
       end
 
@@ -237,6 +248,29 @@ module RSpec
       ]
 
     private
+
+      def truncate(formatted_object)
+        if max_formatted_output_length.nil? || formatted_object.length < max_formatted_output_length
+          formatted_object
+        else
+          beginning = truncate_string formatted_object, 0, max_formatted_output_length / 2
+          ending = truncate_string formatted_object, -max_formatted_output_length / 2, -1
+          beginning + ELLIPSIS + ending
+        end
+      end
+
+      def truncate_from(formatted_object, start_index)
+        end_index = start_index + max_formatted_output_length - 1
+        window = truncate_string formatted_object, start_index, end_index
+        window = ELLIPSIS + window if start_index > 0
+        window += ELLIPSIS if end_index < formatted_object.length - 1
+        window
+      end
+
+      def first_difference_index(first, second)
+        differing_prefix_length = (1..first.length).bsearch { |length| first[0, length] != second[0, length] }
+        differing_prefix_length ? differing_prefix_length - 1 : first.length
+      end
 
       # Returns the substring defined by the start_index and end_index
       # If the string ends with a partial ANSI code code then that
