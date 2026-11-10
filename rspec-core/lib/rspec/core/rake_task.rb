@@ -24,6 +24,11 @@ module RSpec
       # Default path to the RSpec executable.
       DEFAULT_RSPEC_PATH = File.expand_path('../../../../exe/rspec', __FILE__)
 
+      # @private
+      # `SPEC` entries like `file[1:2]`. `FileList` would read
+      # `[1:2]` as a glob and match nothing.
+      EXAMPLE_ID = /\[[\d:,]+\]\z/
+
       # Name of task. Defaults to `:spec`.
       attr_accessor :name
 
@@ -119,7 +124,10 @@ module RSpec
 
       def file_inclusion_specification
         if ENV['SPEC']
-          FileList[ENV['SPEC']].sort
+          ids, files = ENV['SPEC'].split.partition { |entry| entry =~ EXAMPLE_ID }
+          return FileList[ENV['SPEC']].sort if ids.empty?
+
+          (FileList[*files] + ids.map { |id| escape id }).sort
         elsif String === pattern && !File.exist?(pattern)
           return if [*rspec_opts].any? { |opt| opt =~ /--pattern/ }
           "--pattern #{escape pattern}"
