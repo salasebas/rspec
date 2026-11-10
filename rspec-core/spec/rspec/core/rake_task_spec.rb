@@ -210,6 +210,22 @@ module RSpec::Core
           specify_consistent_ordering_of_files_to_run('a/*.rb', FileList)
         end
       end
+
+      it "passes example ids through to rspec as given" do
+        with_env_vars 'SPEC' => 'path/to/a_spec.rb[1:2] path/to/b_spec.rb:12 spec/rspec/core/resources/acceptance/*_spec.rb' do
+          expect(Shellwords.split(spec_command)).to include(
+            "path/to/a_spec.rb[1:2]",
+            "path/to/b_spec.rb:12",
+            "spec/rspec/core/resources/acceptance/foo_spec.rb"
+          )
+        end
+      end
+
+      it "passes a SPEC without example ids to rspec in its original order" do
+        with_env_vars 'SPEC' => 'path/to/b_spec.rb path/to/a_spec.rb' do
+          expect(spec_command).to end_with("path/to/b_spec.rb path/to/a_spec.rb")
+        end
+      end
     end
 
     describe "load path manipulation" do
