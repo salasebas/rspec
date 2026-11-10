@@ -29,6 +29,7 @@
   - current_example.feature
   - described_class.feature
   - user_defined.feature
+  - fail_on_output.feature
 - filtering:
   - inclusion_filters.feature
   - exclusion_filters.feature

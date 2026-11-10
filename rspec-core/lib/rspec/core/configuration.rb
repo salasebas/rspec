@@ -2123,6 +2123,10 @@ module RSpec
             procsy.example.set_aggregate_failures_exception(exception)
           end
         end
+
+        around(:example, :fail_on_output => true) do |procsy|
+          FailOnOutput.run(procsy)
+        end
       end
 
       def assert_no_example_groups_defined(config_option)
