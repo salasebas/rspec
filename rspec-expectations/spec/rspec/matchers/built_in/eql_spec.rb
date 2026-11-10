@@ -31,6 +31,12 @@ module RSpec
         expect(matcher.failure_message).to eq "\nexpected: \"1\"\n     got: 1\n\n(compared using eql?)\n"
       end
 
+      it "shows where long strings differ on #failure_message when truncation would hide it" do
+        matcher = eql("a" * 201)
+        matcher.matches?("#{'a' * 100}Z#{'a' * 100}")
+        expect(matcher.failure_message).to eq "\nexpected: ...#{'a' * 200}...\n     got: ...#{'a' * 100}Z#{'a' * 99}...\n\n(compared using eql?)\n"
+      end
+
       it "provides message, expected and actual on #negative_failure_message" do
         matcher = eql(1)
         matcher.matches?(1)

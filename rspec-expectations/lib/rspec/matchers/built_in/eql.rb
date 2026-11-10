@@ -10,6 +10,7 @@ module RSpec
         # @api private
         # @return [String]
         def failure_message
+          expected_formatted, actual_formatted = RSpec::Support::ObjectFormatter.format_pair(expected, actual)
           if string_encoding_differs?
             "\nexpected: #{format_encoding(expected)} #{expected_formatted}\n     got: #{format_encoding(actual)} #{actual_formatted}\n\n(compared using eql?)\n"
           else

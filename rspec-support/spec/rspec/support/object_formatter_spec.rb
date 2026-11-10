@@ -358,6 +358,27 @@ module RSpec
         end
       end
 
+      context 'when formatting a pair of objects' do
+        let(:formatter) { ObjectFormatter.new(10) }
+
+        it 'truncates both around their first difference when the usual truncation hides it' do
+          expect(formatter.format_pair('aaaaaaaaaaZaaaaaaaaaa', 'a' * 21)).to eq(['...aaaaaZaaaa...', '...aaaaaaaaaa...'])
+        end
+
+        it 'shows the end of both when they differ only in length' do
+          expect(formatter.format_pair('a' * 30, 'a' * 31)).to eq(['...aaaaa"', '...aaaaaa"'])
+        end
+
+        it 'keeps the usual truncation when it already shows a difference' do
+          expect(formatter.format_pair('Zaaaaaaaaaaaaaaaaaaaa', 'a' * 21)).to eq(['"Zaaaa...aaaa"', '"aaaaa...aaaa"'])
+        end
+
+        it 'does not truncate when truncation is disabled' do
+          formatter = ObjectFormatter.new(nil)
+          expect(formatter.format_pair('a' * 30, 'b' * 30)).to eq(["\"#{'a' * 30}\"", "\"#{'b' * 30}\""])
+        end
+      end
+
       if RUBY_VERSION.to_f > 3.3
         def eq_hash_syntax(string)
           eq string.gsub(/:(\w+)=>/, '\1: ').gsub('=>', ' => ')

@@ -46,11 +46,13 @@ RSpec.shared_examples "an RSpec value matcher" do |options|
 
   it 'uses the `ObjectFormatter` for `failure_message`' do
     allow(RSpec::Support::ObjectFormatter).to receive(:format).and_return("detailed inspect")
+    allow(RSpec::Support::ObjectFormatter).to receive(:format_pair).and_return(["detailed inspect", "detailed inspect"])
     matcher.matches?(invalid_value)
     message = matcher.failure_message
 
-    # Undo our stub so it doesn't affect the `include` matcher below.
+    # Undo our stubs so they don't affect the `include` matcher below.
     allow(RSpec::Support::ObjectFormatter).to receive(:format).and_call_original
+    allow(RSpec::Support::ObjectFormatter).to receive(:format_pair).and_call_original
     expect(message).to include("detailed inspect")
   end
 
