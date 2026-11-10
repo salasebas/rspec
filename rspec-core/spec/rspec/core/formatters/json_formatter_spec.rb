@@ -95,6 +95,65 @@ RSpec.describe RSpec::Core::Formatters::JsonFormatter do
     expect(formatter_output.string).to eq expected.to_json
   end
 
+  it "nests each of multiple exceptions, with its own backtrace, under the example exception" do
+    RSpec.configuration.order = :defined
+
+    group = RSpec.describe("multiple exceptions") do
+      it("aggregates failures", :aggregate_failures) do
+        expect(1).to eq 2
+        expect(3).to eq 4
+      end
+
+      context "with a failing after hook" do
+        after { raise "after hook failed" }
+        it("fails") { raise "example failed" }
+      end
+    end
+    first_expectation_line = __LINE__ - 9
+    second_expectation_line = __LINE__ - 9
+    after_hook_line = __LINE__ - 6
+    example_line = __LINE__ - 6
+
+    reporter.report(2) { |r| group.run(r) }
+
+    aggregated, with_hook = formatter.output_hash[:examples].map { |example| example[:exception] }
+    this_file = relative_path(__FILE__)
+
+    expect(aggregated).to include(
+      :class => "RSpec::Expectations::MultipleExpectationsNotMetError",
+      :backtrace => []
+    )
+    expect(aggregated[:exceptions]).to match [
+      {
+        :class => "RSpec::Expectations::ExpectationNotMetError",
+        :message => a_string_including("expected: 2"),
+        :backtrace => a_collection_starting_with(a_string_starting_with("#{this_file}:#{first_expectation_line}:"))
+      },
+      {
+        :class => "RSpec::Expectations::ExpectationNotMetError",
+        :message => a_string_including("expected: 4"),
+        :backtrace => a_collection_starting_with(a_string_starting_with("#{this_file}:#{second_expectation_line}:"))
+      }
+    ]
+
+    expect(with_hook).to include(
+      :class => "RSpec::Core::MultipleExceptionError",
+      :message => "example failed\n\nafter hook failed"
+    )
+    expect(with_hook[:exceptions]).to match [
+      {
+        :class => "RuntimeError",
+        :message => "example failed",
+        :backtrace => a_collection_starting_with(a_string_starting_with("#{this_file}:#{example_line}:"))
+      },
+      {
+        :class => "RuntimeError",
+        :message => "after hook failed",
+        :backtrace => a_collection_starting_with(a_string_starting_with("#{this_file}:#{after_hook_line}:"))
+      }
+    ]
+  end
+
   context "when full backtrace is enabled" do
     around do |example|
       original_value = RSpec.configuration.full_backtrace?

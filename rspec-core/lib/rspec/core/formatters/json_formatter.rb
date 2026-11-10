@@ -38,11 +38,7 @@ module RSpec
               e = notification.example.exception
 
               if e
-                hash[:exception] = {
-                  :class => e.class.name,
-                  :message => e.message,
-                  :backtrace => notification.formatted_backtrace,
-                }
+                hash[:exception] = format_exception(e, notification.formatted_backtrace, notification.example)
               end
             end
           end
@@ -84,6 +80,21 @@ module RSpec
         end
 
       private
+
+        def format_exception(exception, backtrace, example)
+          hash = {
+            :class => exception.class.name,
+            :message => exception.message,
+            :backtrace => backtrace,
+          }
+          return hash unless MultipleExceptionError::InterfaceTag === exception
+
+          hash[:exceptions] = exception.all_exceptions.map do |sub_exception|
+            sub_backtrace = ExceptionPresenter.new(sub_exception, example).formatted_backtrace
+            format_exception(sub_exception, sub_backtrace, example)
+          end
+          hash
+        end
 
         def format_example(example)
           {
