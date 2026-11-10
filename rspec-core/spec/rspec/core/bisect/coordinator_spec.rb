@@ -6,8 +6,11 @@ module RSpec::Core
   RSpec.describe Bisect::Coordinator, :simulate_shell_allowing_unquoted_ids do
     include FormatterSupport
 
-    let(:config) { instance_double(Configuration, :bisect_runner_class => fake_bisect_runner) }
-    let(:spec_runner) { instance_double(RSpec::Core::Runner, :configuration => config) }
+    let(:config) { Configuration.new.tap { |c| c.order = :defined } }
+    let(:cli_args) { [] }
+    let(:spec_runner) do
+      instance_double(RSpec::Core::Runner, :configuration => config, :options => ConfigurationOptions.new(cli_args))
+    end
     let(:fake_bisect_runner) do
       FakeBisectRunner.new(
         1.upto(8).map { |i| "#{i}.rb[1:1]" },
@@ -16,8 +19,17 @@ module RSpec::Core
       )
     end
 
+    before { allow(config).to receive(:bisect_runner_class).and_return(fake_bisect_runner) }
+
     def find_minimal_repro(output, formatter=Formatters::BisectProgressFormatter, bisect_runner = :fork)
       Bisect::Coordinator.bisect_with(spec_runner, [], formatter.new(output, bisect_runner))
+    end
+
+    def bisect_output(bisect_runner)
+      config.bisect_runner = bisect_runner
+      output = StringIO.new
+      find_minimal_repro(output, Formatters::BisectProgressFormatter, bisect_runner)
+      output.string
     end
 
     it 'notifies the bisect progress formatter of progress and closes the output' do
@@ -93,6 +105,41 @@ module RSpec::Core
         |  rspec 1.rb[1:1] 2.rb[1:1] 4.rb[1:1] 5.rb[1:1]
 
       EOS
+    end
+
+    context "when the suite uses random ordering" do
+      before { config.order = :random }
+
+      it "warns before running the suite when the shell runner gets no seed" do
+        expect(bisect_output(:shell)).to start_with(<<-EOS.gsub(/^\s+\|/, ''))
+          |================================================================================
+          |WARNING: random ordering is on, but no seed was given. The `:shell` bisect
+          |runner starts every run in a new process with its own random seed, so the
+          |example order will change between runs and bisect will likely fail after
+          |the first full run. Pass `--seed` with the seed of the failing run (shown as
+          |"Randomized with seed ...") to keep the order the same in every run.
+          |================================================================================
+          |Bisect started using options: ""
+        EOS
+      end
+
+      context "with a seed" do
+        let(:cli_args) { %w[--seed 1234] }
+
+        it "does not warn" do
+          expect(bisect_output(:shell)).not_to include("WARNING")
+        end
+      end
+
+      it "does not warn when the fork runner shares the seed with its runs" do
+        expect(bisect_output(:fork)).not_to include("WARNING")
+      end
+    end
+
+    context "when the suite uses defined ordering" do
+      it "does not warn with the shell runner" do
+        expect(bisect_output(:shell)).not_to include("WARNING")
+      end
     end
 
     context "with an order-independent failure" do

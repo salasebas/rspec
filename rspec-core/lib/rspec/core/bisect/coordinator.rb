@@ -24,6 +24,8 @@ module RSpec
         end
 
         def bisect
+          @notifier.publish(:bisect_unseeded_random_order) if unseeded_random_order_with_shell_runner?
+
           repro = start_bisect_runner do |runner|
             minimizer = ExampleMinimizer.new(@shell_command, runner, @notifier)
 
@@ -43,6 +45,14 @@ module RSpec
         end
 
       private
+
+        def unseeded_random_order_with_shell_runner?
+          config = @spec_runner.configuration
+
+          config.bisect_runner == :shell &&
+            config.ordering_registry.fetch(:global).is_a?(Ordering::Random) &&
+            !@spec_runner.options.options[:order].to_s.include?(':')
+        end
 
         def start_bisect_runner(&block)
           klass = @spec_runner.configuration.bisect_runner_class

@@ -11,6 +11,16 @@ module RSpec
           @bisect_runner = bisect_runner
         end
 
+        def bisect_unseeded_random_order(_notification)
+          output.puts "=" * 80
+          output.puts "WARNING: random ordering is on, but no seed was given. The `:shell` bisect"
+          output.puts "runner starts every run in a new process with its own random seed, so the"
+          output.puts "example order will change between runs and bisect will likely fail after"
+          output.puts "the first full run. Pass `--seed` with the seed of the failing run (shown as"
+          output.puts '"Randomized with seed ...") to keep the order the same in every run.'
+          output.puts "=" * 80
+        end
+
         def bisect_starting(notification)
           @round_count = 0
           output.puts bisect_started_message(notification)
