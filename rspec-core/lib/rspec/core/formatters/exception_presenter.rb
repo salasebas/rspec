@@ -28,11 +28,11 @@ module RSpec
         end
 
         def message_lines
-          add_shared_group_lines(failure_lines, Notifications::NullColorizer)
+          add_shared_group_lines(failure_lines(false), Notifications::NullColorizer)
         end
 
         def colorized_message_lines(colorizer=::RSpec::Core::Formatters::ConsoleCodes)
-          add_shared_group_lines(failure_lines, colorizer).map do |line|
+          add_shared_group_lines(failure_lines(true), colorizer).map do |line|
             colorizer.wrap line, message_color
           end
         end
@@ -135,11 +135,12 @@ module RSpec
           name
         end
 
-        def failure_lines
-          @failure_lines ||= [].tap do |lines|
-            lines.concat(failure_slash_error_lines)
+        def failure_lines(highlight_syntax)
+          @failure_lines || [].tap do |lines|
+            slash_error_lines = failure_slash_error_lines(highlight_syntax)
+            lines.concat(slash_error_lines)
 
-            sections = [failure_slash_error_lines, exception_lines]
+            sections = [slash_error_lines, exception_lines]
             if sections.any? { |section| section.size > 1 } && !exception_lines.first.empty?
               lines << ''
             end
@@ -149,8 +150,8 @@ module RSpec
           end
         end
 
-        def failure_slash_error_lines
-          lines = read_failed_lines
+        def failure_slash_error_lines(highlight_syntax)
+          lines = read_failed_lines(highlight_syntax)
           if lines.count == 1
             lines[0] = "Failure/Error: #{lines[0].strip}"
           else
@@ -215,7 +216,7 @@ module RSpec
           lines
         end
 
-        def read_failed_lines
+        def read_failed_lines(highlight_syntax)
           matching_line = find_failed_line
           unless matching_line
             return ["Unable to find matching line from backtrace"]
@@ -230,7 +231,7 @@ module RSpec
           file_path, line_number = file_and_line_number[1..2]
           max_line_count = RSpec.configuration.max_displayed_failure_line_count
           lines = SnippetExtractor.extract_expression_lines_at(file_path, line_number.to_i, max_line_count)
-          RSpec.world.syntax_highlighter.highlight(lines)
+          highlight_syntax ? RSpec.world.syntax_highlighter.highlight(lines) : lines
         rescue SnippetExtractor::NoSuchFileError
           ["Unable to find #{file_path} to read failed line"]
         rescue SnippetExtractor::NoSuchLineError
