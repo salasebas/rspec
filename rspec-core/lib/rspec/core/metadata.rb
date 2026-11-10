@@ -93,6 +93,18 @@ module RSpec
       end
 
       # @private
+      def self.dup_for_child(group_metadata)
+        copy = group_metadata.dup
+        group_metadata.each do |key, value|
+          next unless Hash === value || Array === value
+          next if RESERVED_KEYS.include?(key)
+
+          copy[key] = deep_hash_dup(value)
+        end
+        copy
+      end
+
+      # @private
       def self.id_from(metadata)
         "#{metadata[:rerun_file_path]}[#{metadata[:scoped_id]}]"
       end
@@ -203,7 +215,7 @@ module RSpec
       # @private
       class ExampleHash < HashPopulator
         def self.create(group_metadata, user_metadata, index_provider, description, block)
-          example_metadata = group_metadata.dup
+          example_metadata = Metadata.dup_for_child(group_metadata)
           example_metadata[:execution_result] = Example::ExecutionResult.new
           example_metadata[:example_group] = group_metadata
           example_metadata[:shared_group_inclusion_backtrace] = SharedExampleGroupInclusionStackFrame.current_backtrace
@@ -234,7 +246,9 @@ module RSpec
         def self.create(parent_group_metadata, user_metadata, example_group_index, *args, &block)
           group_metadata =
             if parent_group_metadata
-              { **parent_group_metadata, :parent_example_group => parent_group_metadata }
+              copy = Metadata.dup_for_child(parent_group_metadata)
+              copy[:parent_example_group] = parent_group_metadata
+              copy
             else
               {}
             end

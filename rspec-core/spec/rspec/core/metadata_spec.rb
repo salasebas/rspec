@@ -130,6 +130,19 @@ module RSpec
           expect(b[:description]).to eq("new description")
         end
 
+        it "gives each example its own copy of hashes and arrays inherited from the group" do
+          group = RSpec.describe("group", :headers => { :auth => { :user => "a" } }, :tags => [:a])
+          first = group.example("first")
+          second = group.example("second")
+
+          first.metadata[:headers][:auth][:user] = "b"
+          first.metadata[:tags] << :b
+
+          expected = { :headers => { :auth => { :user => "a" } }, :tags => [:a] }
+          expect(second.metadata).to include(expected)
+          expect(group.metadata).to include(expected)
+        end
+
         it 'does not include example-group specific keys' do
           example_meta = nil
           group_meta = nil
@@ -668,6 +681,19 @@ module RSpec
           end
 
           expect(child[:parent_example_group]).to eq(parent)
+        end
+
+        it "gets its own copy of hashes and arrays inherited from the parent group" do
+          parent = RSpec.describe("parent", :headers => { :auth => { :user => "a" } }, :tags => [:a])
+          child = parent.describe("child")
+          sibling = parent.describe("sibling")
+
+          child.metadata[:headers][:auth][:user] = "b"
+          child.metadata[:tags] << :b
+
+          expected = { :headers => { :auth => { :user => "a" } }, :tags => [:a] }
+          expect(sibling.metadata).to include(expected)
+          expect(parent.metadata).to include(expected)
         end
       end
 
