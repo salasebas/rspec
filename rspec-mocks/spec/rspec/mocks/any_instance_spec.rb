@@ -1252,6 +1252,17 @@ module RSpec
               it "ensures that the restored method behaves as it originally did" do
                 expect(klass.new.send(:private_method)).to eq(:private_method_return_value)
               end
+
+              it "can be expected again on the same instance in later examples" do
+                object = klass.new
+
+                [:first, :second, :third].each do |return_value|
+                  RSpec::Mocks.with_temporary_scope do
+                    expect_any_instance_of(klass).to receive(:private_method).and_return(return_value)
+                    expect(object.send(:private_method)).to eq(return_value)
+                  end
+                end
+              end
             end
 
             context "ensures that the subsequent specs do not see expectations set in previous specs" do

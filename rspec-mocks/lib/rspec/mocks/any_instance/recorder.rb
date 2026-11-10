@@ -273,6 +273,7 @@ module RSpec
         def mark_invoked!(method_name)
           backup_method!(method_name)
           recorder = self
+          method_was_private = @klass.private_method_defined?(method_name)
           @klass.__send__(:define_method, method_name) do |*_args, &_blk|
             invoked_instance = recorder.instance_that_received(method_name)
             inspect = "#<#{self.class}:#{object_id} #{instance_variables.map { |name| "#{name}=#{instance_variable_get name}" }.join(', ')}>"
@@ -280,6 +281,7 @@ module RSpec
               method_name, inspect, invoked_instance
             )
           end
+          @klass.__send__(:private, method_name) if method_was_private
         end
 
         if Support::RubyFeatures.module_prepends_supported?
