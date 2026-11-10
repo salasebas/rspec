@@ -1364,6 +1364,16 @@ module RSpec
                 instance.bees(:sup)
               }.to yield_with_args(instance, :sup)
             end
+
+            it "passes the instance once to the implementation block of an any instance stub" do
+              instance = klass.new
+
+              expect { |b|
+                allow_any_instance_of(klass).to receive(:bees, &b)
+                expect_any_instance_of(klass).to receive(:bees).with(:sup)
+                instance.bees(:sup)
+              }.to yield_with_args(instance, :sup)
+            end
           end
         end
 
