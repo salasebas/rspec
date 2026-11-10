@@ -202,6 +202,24 @@ module RSpec
               )
             end
 
+            it "gives each including group and example its own copy of hashes in the passed metadata" do
+              define_top_level_shared_group("name", :headers => { :a => 1 }) { }
+
+              group = RSpec.describe("outer")
+              nested = group.describe("inner")
+              example = group.example("ex")
+
+              group.include_context "name"
+              example.metadata[:headers][:b] = 2
+              group.metadata[:headers][:c] = 3
+              other_group = RSpec.describe("other")
+              other_group.include_context "name"
+
+              expect([nested, other_group]).to all have_attributes(
+                :metadata => a_hash_including(:headers => { :a => 1 })
+              )
+            end
+
             it "requires a valid name" do
               expect {
                 define_shared_group(:foo => 1) { }

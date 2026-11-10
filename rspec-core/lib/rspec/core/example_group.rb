@@ -704,7 +704,7 @@ module RSpec
 
       # @private
       def self.update_inherited_metadata(updates)
-        metadata.update(updates) do |key, existing_group_value, new_inherited_value|
+        metadata.update(Metadata.dup_for_child(updates)) do |key, existing_group_value, new_inherited_value|
           @user_metadata.key?(key) ? existing_group_value : new_inherited_value
         end
 

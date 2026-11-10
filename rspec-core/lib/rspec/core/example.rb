@@ -139,7 +139,7 @@ module RSpec
 
       # @private
       def update_inherited_metadata(updates)
-        metadata.update(updates) do |_key, existing_example_value, _new_inherited_value|
+        metadata.update(Metadata.dup_for_child(updates)) do |_key, existing_example_value, _new_inherited_value|
           existing_example_value
         end
       end
