@@ -397,16 +397,23 @@ module RSpec::Core
             expect('RSpec').to be_a(Integer)
           end
 
-          it 'uses our syntax highlighter on the code snippet to format it nicely' do
+          before do
             syntax_highlighter = instance_double(Formatters::SyntaxHighlighter)
             allow(syntax_highlighter).to receive(:highlight) do |lines|
               lines.map { |l| "<highlighted>#{l.strip}</highlighted>" }
             end
 
             allow(RSpec.world).to receive_messages(:syntax_highlighter => syntax_highlighter)
+          end
 
+          it 'uses our syntax highlighter on the code snippet to format it nicely' do
             formatted = presenter.fully_formatted(1)
             expect(formatted).to include("<highlighted>expect('RSpec').to be_a(Integer)</highlighted>")
+          end
+
+          it 'does not highlight the code snippet in the uncolored message lines' do
+            expect(presenter.message_lines.first).to eq("Failure/Error: expect('RSpec').to be_a(Integer)")
+            expect(presenter.colorized_message_lines.first).to include("<highlighted>expect('RSpec').to be_a(Integer)</highlighted>")
           end
         end
 
@@ -571,7 +578,7 @@ module RSpec::Core
 
     describe "#read_failed_lines" do
       def read_failed_lines
-        presenter.send(:read_failed_lines)
+        presenter.send(:read_failed_lines, false)
       end
 
       context 'when the failed expression spans multiple lines', :skip => !RSpec::Support::RubyFeatures.ripper_supported? do
