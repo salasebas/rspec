@@ -21,6 +21,7 @@ RSpec::Support.define_optimized_require_for_rspec(:core) { |f| require_relative 
   metadata
   metadata_filter
   pending
+  fail_on_output
   formatters
   ordering
 
