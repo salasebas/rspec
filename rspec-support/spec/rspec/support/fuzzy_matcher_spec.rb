@@ -166,6 +166,33 @@ module RSpec
         expect([String, Integer]).not_to match_against(my_enum)
       end
 
+      context 'when given a delegator' do
+        before { require 'delegate' }
+
+        it 'matches an array against the wrapped array' do
+          expect([Integer, String]).to match_against(SimpleDelegator.new([1, "foo"]))
+          expect([String, Integer]).not_to match_against(SimpleDelegator.new([1, "foo"]))
+        end
+
+        it 'matches a hash against the wrapped hash' do
+          expect(:a => String).to match_against(SimpleDelegator.new(:a => "foo"))
+          expect(:a => Integer).not_to match_against(SimpleDelegator.new(:a => "foo"))
+        end
+
+        it 'still compares the delegator itself' do
+          expect(SimpleDelegator).to match_against(SimpleDelegator.new([1]))
+
+          delegator = Class.new(SimpleDelegator) { def ==(other); other == [1]; end }.new([2])
+          expect([1]).to match_against(delegator)
+        end
+
+        it 'does not require Delegator to be defined' do
+          hide_const("Delegator")
+          expect([1]).not_to match_against(1)
+          expect(:a => 1).not_to match_against(1)
+        end
+      end
+
       it 'does not match an empty hash against an empty array or vice-versa' do
         expect({}).not_to match_against([])
         expect([]).not_to match_against({})

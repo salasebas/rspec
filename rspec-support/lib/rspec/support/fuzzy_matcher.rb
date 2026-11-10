@@ -7,7 +7,7 @@ module RSpec
     # perform the matching.
     module FuzzyMatcher
       # @api private
-      def self.values_match?(expected, actual)
+      def self.values_match?(expected, actual) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
         if Hash === actual
           return hashes_match?(expected, actual) if Hash === expected
         elsif Range === expected
@@ -15,6 +15,8 @@ module RSpec
           return expected == actual
         elsif Array === expected && Enumerable === actual && !(Struct === actual)
           return arrays_match?(expected, actual.to_a)
+        elsif (Array === expected || Hash === expected) && defined?(Delegator) && Delegator === actual
+          return true if values_match?(expected, actual.send(:__getobj__))
         end
 
         return true if expected == actual
